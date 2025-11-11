@@ -1,79 +1,98 @@
+version: '3.8'
+
 services:
-  # База данных
-  postgres:
-    image: postgres:13-alpine
+  db:
+    image: postgres:15
     environment:
-      POSTGRES_DB: cybershield
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: netguard
+      POSTGRES_USER: netguard_user
+      POSTGRES_PASSWORD: netguard_pass
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U netguard_user -d netguard"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis для очередей
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
 
-  # Бэкенд API
-  backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/cybershield
-      - REDIS_URL=redis://redis:6379/0
+  celery:
+    build: ./backend
+    command: celery -A app.celery worker --loglevel=info
     volumes:
       - ./backend:/app
+      - ./models:/app/models  # Для ML моделей
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://netguard_user:netguard_pass@db:5432/netguard
+      - REDIS_URL=redis://redis:6379/0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  api:
+    build: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+      - ./models:/app/models
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-  # Воркер для сканирования
-  scanner-worker:
-    build: 
-      context: ./scanner-worker
-      dockerfile: Dockerfile
+      celery:
+        condition: service_started
     environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/cybershield
+      - DATABASE_URL=postgresql://netguard_user:netguard_pass@db:5432/netguard
       - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./scanner-worker:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    privileged: true  # Для nmap сканирований
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
-  # Фронтенд
   frontend:
-    build: 
-      context: ./frontend
-      dockerfile: Dockerfile
+    build: ./frontend
+    command: npm run dev -- --host 0.0.0.0
+    volumes:
+      - ./frontend:/app
     ports:
       - "3000:3000"
-    environment:
-      - VITE_API_URL=http://localhost:8000/api
     depends_on:
-      - backend
+      - api
+
+  scanner-worker:
+    build: ./scanner-worker
+    privileged: true
+    network_mode: "host"
+    depends_on:
+      - api
+    volumes:
+      - ./scanner-worker:/app
 
 volumes:
   postgres_data:
