@@ -4,14 +4,13 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, AppBar, Toolbar, Typography, Switch, Box } from '@mui/material';
 import Dashboard from './pages/Dashboard';
 import ScanPage from './pages/ScanPage';
-import AI from './pages/AI'; // Теперь существует
+import AI from './pages/AI';
 import { lightTheme, darkTheme } from './themes';
 
 const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
-  // Фикс типов: createTheme принимает ThemeOptions, так что кастуем palette к нему
   const theme = createTheme({
-    palette: darkMode ? darkTheme : lightTheme, // Используем как palette внутри ThemeOptions
+    palette: darkMode ? darkTheme : lightTheme,
   });
 
   return (
