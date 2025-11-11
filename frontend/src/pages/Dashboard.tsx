@@ -1,143 +1,101 @@
-import React from 'react';
-import {
-  Grid,
-  Paper,
-  Typography,
-  Card,
-  CardContent,
-  Box,
-} from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Grid, Card, CardContent, Typography, Alert } from '@mui/material';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
-  ArcElement,
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Bar, Line } from 'react-chartjs-2';
 
+// Регистрация компонентов Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
-  Legend,
-  ArcElement
+  Legend
 );
 
 const Dashboard: React.FC = () => {
-  // Пример данных для графиков
-  const vulnerabilityData = {
-    labels: ['Critical', 'High', 'Medium', 'Low'],
-    datasets: [
-      {
-        label: 'Уязвимости по критичности',
-        data: [12, 19, 8, 15],
-        backgroundColor: [
-          '#ff4444',
-          '#ffbb33',
-          '#00C851',
-          '#33b5e5',
-        ],
-      },
-    ],
+  const [data, setData] = useState({ vulns: [], anomalies: [] }); // Заглушка; позже fetch из API
+
+  useEffect(() => {
+    // Симуляция fetch данных из backend
+    setData({
+      vulns: [
+        { id: 'CVE-2023-1', count: 12 },
+        { id: 'CVE-2023-2', count: 19 },
+        { id: 'CVE-2023-3', count: 3 },
+      ],
+      anomalies: [65, 59, 80],
+    });
+  }, []);
+
+  const barData = {
+    labels: data.vulns.map(v => v.id),
+    datasets: [{
+      label: 'Топ уязвимости',
+      data: data.vulns.map(v => v.count),
+      backgroundColor: 'rgba(75, 192, 192, 0.4)',
+      borderColor: 'rgba(75, 192, 192, 1)',
+      borderWidth: 1,
+    }],
   };
 
-  const scanActivityData = {
-    labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-    datasets: [
-      {
-        label: 'Сканирования',
-        data: [12, 19, 3, 5, 2, 3, 8],
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-      },
-    ],
+  const lineData = {
+    labels: ['Янв', 'Фев', 'Мар', 'Апр'],
+    datasets: [{
+      label: 'Тренды аномалий',
+      data: data.anomalies,
+      borderColor: 'rgb(75, 192, 192)',
+      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      tension: 0.1,
+    }],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' as const },
+      title: { display: true, text: 'Дашборд' },
+    },
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Дашборд безопасности
-      </Typography>
-      
+    <>
+      <Typography variant="h4" gutterBottom>Дашборд</Typography>
       <Grid container spacing={3}>
-        {/* Статистика */}
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Всего активов
-              </Typography>
-              <Typography variant="h5" component="div">
-                156
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Открытых портов
-              </Typography>
-              <Typography variant="h5" component="div">
-                842
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Критических уязвимостей
-              </Typography>
-              <Typography variant="h5" component="div" color="error">
-                12
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Активных сканирований
-              </Typography>
-              <Typography variant="h5" component="div">
-                3
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Графики */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Распределение уязвимостей
-            </Typography>
-            <Doughnut data={vulnerabilityData} />
-          </Paper>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Топ уязвимостей</Typography>
+              <Bar data={barData} options={options} />
+            </CardContent>
+          </Card>
         </Grid>
-        
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Активность сканирований
-            </Typography>
-            <Bar data={scanActivityData} />
-          </Paper>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Тренды аномалий</Typography>
+              <Line data={lineData} options={options} />
+            </CardContent>
+          </Card>
+        </Grid>
+        {/* Добавьте больше: Heatmap портов, Pie типов активов */}
+        <Grid item xs={12}>
+          <Alert severity="info">Данные загружены. Для реального использования подключите к API.</Alert>
         </Grid>
       </Grid>
-    </Box>
+    </>
   );
 };
 

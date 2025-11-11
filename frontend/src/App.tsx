@@ -1,36 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import Layout from './components/Layout';
+import { CssBaseline, AppBar, Toolbar, Typography, Switch, Box } from '@mui/material';
 import Dashboard from './pages/Dashboard';
-import Scans from './pages/Scans';
-import Assets from './pages/Assets';
-
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
-});
+import ScanPage from './pages/ScanPage';
+import AI from './pages/AI'; // Добавьте позже для ИИ-вкладки
+import { lightTheme, darkTheme } from './themes';
 
 const App: React.FC = () => {
+  const [darkMode, setDarkMode] = useState(false);
+  const theme = createTheme(darkMode ? darkTheme : lightTheme);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Layout>
+        <AppBar position="static">
+          <Toolbar>
+            <Typography variant="h6" flexGrow={1}>NetGuard AI</Typography>
+            <Switch 
+              checked={darkMode} 
+              onChange={(e) => setDarkMode(e.target.checked)} 
+              color="default"
+            />
+            <Typography ml={1}>Тёмная тема</Typography>
+          </Toolbar>
+        </AppBar>
+        <Box p={3}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/scans" element={<Scans />} />
-            <Route path="/assets" element={<Assets />} />
+            <Route path="/scan" element={<ScanPage />} />
+            <Route path="/ai" element={<AI />} />
           </Routes>
-        </Layout>
+        </Box>
       </Router>
     </ThemeProvider>
   );
