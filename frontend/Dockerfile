@@ -1,21 +1,22 @@
+# Если hangs часто — смените на node:18 (Debian, быстрее npm)
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Копирование package.json и установка зависимостей
-COPY package.json ./
-RUN npm install
+# Copy package + lock для кэша
+COPY package*.json ./
 
-# Копирование исходного кода
+# Зеркало для скорости (npmmirror — быстрое), clean cache, ci (fast) или fallback install
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm cache clean --force && \
+    (npm ci --verbose || npm install --verbose)
+
+# Copy source
 COPY . .
 
-# Сборка приложения
+# Build (для prod; dev — volumes)
 RUN npm run build
-
-# Установка serve для раздачи статики
-RUN npm install -g serve
 
 EXPOSE 3000
 
-# Запуск приложения
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["npx", "vite", "--host", "0.0.0.0"]
