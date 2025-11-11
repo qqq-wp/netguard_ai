@@ -1,43 +1,33 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline, AppBar, Toolbar, Typography, Switch, Box } from '@mui/material';
+// frontend/src/App.tsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import ScanPage from './pages/ScanPage';
-import AI from './pages/AI';
-import { lightTheme, darkTheme } from './themes';
 
-const App: React.FC = () => {
-  const [darkMode, setDarkMode] = useState(false);
-  const theme = createTheme({
-    palette: darkMode ? darkTheme : lightTheme,
-  });
-
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6" flexGrow={1}>NetGuard AI</Typography>
-            <Switch 
-              checked={darkMode} 
-              onChange={(e) => setDarkMode(e.target.checked)} 
-              color="default"
-            />
-            <Typography ml={1}>Тёмная тема</Typography>
-          </Toolbar>
-        </AppBar>
-        <Box p={3}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/scan" element={<ScanPage />} />
-            <Route path="/ai" element={<AI />} />
-          </Routes>
-        </Box>
-      </Router>
-    </ThemeProvider>
-  );
+const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
 
 export default App;
